@@ -1,0 +1,350 @@
+# Angular Setup Guide (Windows)
+
+A complete step-by-step guide to install Angular, create a project, and run it locally using VS Code.
+
+---
+
+## Prerequisites
+
+* Windows 10/11
+* Internet Connection
+* VS Code
+* Node.js (LTS Version)
+
+---
+
+## Step 1: Install Node.js
+
+Download and install the LTS version from:
+
+https://nodejs.org
+
+Verify the installation:
+
+```bash
+node -v
+npm -v
+```
+
+---
+
+## Step 2: Install Angular CLI
+
+```bash
+npm install -g @angular/cli
+```
+
+Verify the installation:
+
+```bash
+ng version
+```
+
+---
+
+## Step 3: Create a New Angular Project
+
+```bash
+ng new my-angular-app
+```
+
+Choose the desired options:
+
+* CSS or SCSS
+* SSR: No (for beginners)
+
+---
+
+## Step 4: Open the Project
+
+```bash
+cd my-angular-app
+code .
+```
+
+---
+
+## Step 5: Run the Application
+
+```bash
+ng serve
+```
+
+or
+
+```bash
+ng serve --open
+```
+
+Open your browser:
+
+```
+http://localhost:4200
+```
+
+---
+
+# Angular CLI Commands
+
+## Check Angular Version
+
+```bash
+ng version
+```
+
+---
+
+## Create Component
+
+```bash
+ng generate component component-name
+```
+
+Shortcut:
+
+```bash
+ng g c component-name
+```
+
+Example:
+
+```bash
+ng g c home
+```
+
+---
+
+## Create Service
+
+```bash
+ng generate service services/user
+```
+
+Shortcut:
+
+```bash
+ng g s services/user
+```
+
+---
+
+## Create Module
+
+```bash
+ng g m admin
+```
+
+---
+
+## Create Pipe
+
+```bash
+ng g p pipes/search
+```
+
+---
+
+## Create Directive
+
+```bash
+ng g d directives/highlight
+```
+
+---
+
+## Create Guard
+
+```bash
+ng g guard guards/auth
+```
+
+---
+
+## Create Interface
+
+```bash
+ng g interface models/user
+```
+
+---
+
+## Create Class
+
+```bash
+ng g class models/student
+```
+
+---
+
+## Create Enum
+
+```bash
+ng g enum models/role
+```
+
+---
+
+## Build the Project
+
+Development Build:
+
+```bash
+ng build
+```
+
+Production Build:
+
+```bash
+ng build --configuration production
+```
+
+---
+
+## Run Tests
+
+```bash
+ng test
+```
+
+---
+
+## Update Angular
+
+```bash
+ng update
+```
+
+Update Angular CLI:
+
+```bash
+npm install -g @angular/cli@latest
+```
+
+---
+
+## Install Packages
+
+Example:
+
+```bash
+npm install bootstrap
+npm install axios
+npm install lodash
+```
+
+---
+
+## Uninstall Package
+
+```bash
+npm uninstall bootstrap
+```
+
+---
+
+## View Installed Packages
+
+```bash
+npm list
+```
+
+---
+
+## Clean npm Cache
+
+```bash
+npm cache clean --force
+```
+
+---
+
+## Reinstall Dependencies
+
+Delete `node_modules` and `package-lock.json`, then run:
+
+```bash
+npm install
+```
+
+---
+
+## Stop Development Server
+
+Press:
+
+```
+Ctrl + C
+```
+
+---
+
+# Complete Setup Commands
+
+```bash
+node -v
+npm -v
+npm install -g @angular/cli
+ng version
+ng new my-angular-app
+cd my-angular-app
+code .
+ng serve --open
+```
+
+---
+
+# Recommended VS Code Extensions
+
+* Angular Language Service
+* Angular Snippets
+* Prettier
+* ESLint
+* Auto Rename Tag
+* Auto Close Tag
+* GitLens
+* Material Icon Theme
+
+---
+
+# Project Structure
+
+```
+src/
+│
+├── app/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── app.module.ts
+│   ├── app-routing.module.ts
+│   └── app.component.ts
+│
+├── assets/
+├── environments/
+├── index.html
+├── main.ts
+└── styles.css
+```
+
+---
+
+# Useful Shortcuts
+
+| Command       | Description                 |
+| ------------- | --------------------------- |
+| `ng s`        | Start Development Server    |
+| `ng s -o`     | Start Server & Open Browser |
+| `ng g c`      | Generate Component          |
+| `ng g s`      | Generate Service            |
+| `ng build`    | Build Project               |
+| `ng test`     | Run Unit Tests              |
+| `ng version`  | Check Angular Version       |
+| `npm install` | Install Dependencies        |
+
+---
+
+## Author
+
+**Karan Jaswal**
+
+This repository is created for learning Angular from scratch and serves as a quick reference for Angular setup and commonly used CLI commands.
