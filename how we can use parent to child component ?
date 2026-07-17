@@ -1,1 +1,152 @@
 
+Dashboard (Parent Component)
+│
+├── Customer Sidebar (Child Component)
+├── Stats Cards
+├── Revenue Chart
+├── Policy Chart
+└── Payment Sidebar
+<app-customer-sidebar></app-customer-sidebar>
+
+Dashboard Parent hai.
+CustomerSidebar Child hai.
+
+#our goal-------------------
+
+Customer Click
+
+↓
+
+Popup Dashboard me Open ho
+
+
+Question:
+
+Popup CustomerSidebar me kyun nahi banaya?
+
+Answer:
+
+Kyuki popup poori screen ko cover karta hai.
+
+Agar popup sidebar ke andar hota
+
+
+Sidebar
+
++----------------------+
+| Popup                |
+|                      |
++----------------------+
+
+Dashboard
+
+------------------------------------
+ Sidebar | Main | Payment
+------------------------------------
+
+Popup Overlay
+
+-----------------------------
+|                           |
+|        Popup              |
+|                           |
+
+-----------------------------
+<app-customer-sidebar
+(openPopup)="openCustomerPopup($event)">
+</app-customer-sidebar>
+
+Yaha Dashboard bol raha hai
+
+CustomerSidebar...
+
+Agar tum kabhi openPopup event bhejo...
+
+to
+
+openCustomerPopup()
+
+function call kar dena.
+
+Abhi event aaya hi nahi.
+
+Dashboard bas wait kar raha hai.
+
+
+
+
+now in customersidebar file-------------------------------------------------------------------------
+
+@Output()
+
+openPopup = new EventEmitter<any>();
+
+
+
+------------
+openPopup
+
+<div
+
+(click)="onDetails(customer)">
+
+onDetails(customer){
+
+}
+
+this.openPopup.emit(customer);
+
+--------------------------------------------------------------------------------------
+
+CustomerSidebar
+
+↓
+
+emit(customer)
+
+↓
+
+Dashboard
+
+
+
+Step 5
+
+Dashboard sun raha tha.
+
+Yaad hai?
+
+(openPopup)="openCustomerPopup($event)"
+
+Jaise hi
+
+emit(customer)
+
+hua
+
+Angular ne bola
+
+openPopup event aa gaya.
+
+Ab function call karo.
+
+Angular automatically call karega
+
+openCustomerPopup(customer)
+
+Actually
+
+emit(customer)
+
+↓
+
+$event
+
+↓
+
+customer
+
+$event me wahi object hota hai jo emit kiya gaya.
+
+Step 6
+
