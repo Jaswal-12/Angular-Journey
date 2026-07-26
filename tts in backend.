@@ -1,0 +1,21 @@
+import textToSpeech from "@google-cloud/text-to-speech";
+
+const client = new textToSpeech.TextToSpeechClient();
+
+export const generateSpeech = async (text) => {
+  const request = {
+    input: { text },
+    voice: {
+      languageCode: "en-IN",
+      ssmlGender: "NEUTRAL",
+    },
+    audioConfig: {
+      audioEncoding: "MP3",
+    },
+  };
+
+  const response = await client.synthesizeSpeech(request);
+  return response[0].audioContent;
+};
+
+  
