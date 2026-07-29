@@ -1,0 +1,42 @@
+import FormSession from "../models/FormSession.js";
+import { randomUUID } from "crypto";
+
+export const createSession = async () => {
+  const session = await FormSession.create({
+    sessionId: randomUUID(),
+    formType: "BUY_POLICY",
+    currentQuestionIndex: 0,
+    answers: {},
+    status: "IN_PROGRESS",  
+  });
+
+  return session;
+};
+
+
+
+export const getSession = async (sessionId) => {
+    return await FormSession.findOne({ sessionId });
+};
+
+export const saveAnswer = async (sessionId, key, value) => {
+    const session = await FormSession.findOne({ sessionId });
+
+    session.answers.set(key, value);
+    session.markModified("answers");
+    session.currentQuestionIndex++;
+
+    await session.save();
+
+    return session;
+};
+
+export const completeSession = async (sessionId) => {
+    const session = await FormSession.findOne({ sessionId });
+
+    session.status = "COMPLETED";
+
+    await session.save();
+
+    return session;
+};
