@@ -1,0 +1,501 @@
+# Stateful Authentication vs Stateless Authentication
+
+Authentication is the process of verifying the identity of a user before allowing access to protected resources.
+
+Examples:
+
+* Logging into a website
+* Accessing a banking dashboard
+* Using an admin panel
+
+There are two common approaches for managing user authentication:
+
+1. Stateful Authentication
+2. Stateless Authentication
+
+# 1. Stateful Authentication
+
+## What is Stateful Authentication?
+
+Stateful authentication is an authentication method where the server stores information about the user's login state.
+
+After successful login, the server creates a session and stores user information on the server side. The client receives only a session identifier (session ID), which is sent with every request.
+
+The server uses this session ID to find the user's session data and identify the user.
+
+## How Stateful Authentication Works
+
+Flow:
+
+```
+User
+ |
+ | Login (email + password)
+ |
+ ↓
+Server verifies credentials
+ |
+ ↓
+Server creates session
+ |
+ ↓
+Session stored in database/memory
+ |
+ ↓
+Session ID sent to client
+ |
+ ↓
+Client sends Session ID with every request
+ |
+ ↓
+Server checks session and allows access
+```
+
+## Example
+
+User logs in:
+
+```
+POST /login
+
+{
+  "email": "user@gmail.com",
+  "password": "123456"
+}
+```
+
+Server creates:
+
+```
+Session:
+{
+  sessionId: "abc123",
+  userId: "456",
+  role: "admin"
+}
+```
+
+Client receives:
+
+```
+sessionId = abc123
+```
+
+For future requests:
+
+```
+GET /profile
+
+Cookie:
+sessionId=abc123
+```
+
+Server checks:
+
+```
+Is abc123 valid?
+        |
+        ↓
+Yes → Allow access
+No  → Reject request
+```
+
+## Where Session Data is Stored?
+
+Session information can be stored in:
+
+* Server memory
+* Database
+* Redis
+
+Example:
+
+```
+Redis
+
+Session ID        User
+------------------------
+abc123            User-456
+xyz789            User-789
+```
+
+# Advantages of Stateful Authentication
+
+## 1. Easy Session Control
+
+The server can easily:
+
+* Logout users
+* Block users
+* Expire sessions
+* Track active users
+
+Example:
+
+Admin deletes session:
+
+```
+sessionId = abc123 removed
+```
+
+User immediately gets logged out.
+
+## 2. Better Security Control
+
+Sensitive user information stays on the server.
+
+The client only stores:
+
+```
+sessionId
+```
+
+## 3. Easy Role Management
+
+Server can update permissions anytime.
+
+Example:
+
+```
+User Role:
+Admin → Normal User
+```
+
+Changes apply immediately.
+
+# Disadvantages of Stateful Authentication
+
+## 1. Server Must Store Sessions
+
+The server needs storage for every logged-in user.
+
+Example:
+
+```
+10 million users
+
+=
+10 million sessions
+```
+
+## 2. Scaling Problem
+
+In distributed systems:
+
+```
+          Load Balancer
+
+        /            \
+
+    Server A       Server B
+```
+
+If the session exists on Server A but the next request goes to Server B:
+
+```
+Server B does not know the session
+```
+
+Solution:
+
+* Shared Redis session storage
+* Sticky sessions
+
+## 3. More Server Management
+
+The backend must handle:
+
+* Session expiration
+* Session cleanup
+* Storage
+
+# Stateless Authentication
+
+## What is Stateless Authentication?
+
+Stateless authentication is an authentication method where the server does not store user session information.
+
+The client stores an authentication token.
+
+Every request contains this token, and the server verifies the token itself.
+
+The most common example:
+
+```
+JWT (JSON Web Token)
+```
+
+# How Stateless Authentication Works
+
+Flow:
+
+```
+User
+ |
+ | Login
+ |
+ ↓
+Server verifies credentials
+ |
+ ↓
+Server creates JWT token
+ |
+ ↓
+Token sent to client
+ |
+ ↓
+Client stores token
+ |
+ ↓
+Client sends token with every request
+ |
+ ↓
+Server verifies token
+ |
+ ↓
+Access granted
+```
+
+## Example
+
+Login request:
+
+```
+POST /login
+
+{
+ "email":"user@gmail.com",
+ "password":"123456"
+}
+```
+
+Server creates JWT:
+
+```
+eyJhbGciOiJIUzI1Ni...
+```
+
+Client stores:
+
+```
+localStorage
+
+token = eyJhbGciOiJIUzI1Ni...
+```
+
+Request:
+
+```
+GET /profile
+```
+
+Header:
+
+```
+Authorization:
+Bearer eyJhbGciOiJIUzI1Ni...
+```
+
+Server:
+
+```
+Verify JWT signature
+
+        |
+        ↓
+
+Valid?
+
+        |
+        ↓
+
+Allow access
+```
+
+# JWT Structure
+
+A JWT contains three parts:
+
+```
+Header.Payload.Signature
+```
+
+Example:
+
+```
+xxxxx.yyyyy.zzzzz
+```
+
+## Header
+
+Contains information about the algorithm.
+
+Example:
+
+```json
+{
+ "alg":"HS256",
+ "typ":"JWT"
+}
+```
+
+## Payload
+
+Contains user information.
+
+Example:
+
+```json
+{
+ "userId":"123",
+ "role":"admin"
+}
+```
+
+## Signature
+
+Used to verify that the token was not modified.
+
+# Advantages of Stateless Authentication
+
+## 1. Easy Scaling
+
+No session storage required.
+
+Any server can verify the token.
+
+Example:
+
+```
+             Load Balancer
+
+          /       |       \
+
+       Server1 Server2 Server3
+
+
+All servers verify JWT independently
+```
+
+## 2. Faster Authentication
+
+No database/session lookup is required.
+
+The server only verifies the token.
+
+## 3. Good for APIs
+
+Used commonly in:
+
+* Mobile applications
+* Microservices
+* REST APIs
+
+# Disadvantages of Stateless Authentication
+
+## 1. Difficult Logout
+
+Once JWT is created, it remains valid until expiration.
+
+Example:
+
+```
+JWT expiry: 1 hour
+```
+
+Even after logout, the token may work until it expires.
+
+Solutions:
+
+* Token blacklist
+* Short expiry tokens
+* Refresh tokens
+
+## 2. Token Theft Risk
+
+If someone gets your JWT:
+
+```
+Bearer eyJhbGci...
+```
+
+They can access your account until expiry.
+
+## 3. Larger Request Size
+
+Every request sends the complete token.
+
+Example:
+
+```
+Authorization:
+Bearer long_token_here
+```
+
+# Stateful vs Stateless Comparison
+
+| Feature               | Stateful Authentication | Stateless Authentication |
+| --------------------- | ----------------------- | ------------------------ |
+| Server stores session | Yes                     | No                       |
+| Client stores         | Session ID              | JWT Token                |
+| Scalability           | More difficult          | Easier                   |
+| Logout control        | Easy                    | Difficult                |
+| Speed                 | Requires session lookup | Token verification       |
+| Storage               | Redis/Database          | Client side              |
+| Common use            | Traditional websites    | APIs, Microservices      |
+| Example               | Express Session         | JWT                      |
+
+# Real World Examples
+
+## Stateful Examples
+
+Used in:
+
+* Banking websites
+* Traditional web applications
+* Server-rendered applications
+
+Technologies:
+
+* Express Session
+* Django Sessions
+* Spring Session
+
+## Stateless Examples
+
+Used in:
+
+* React + Node.js applications
+* Mobile apps
+* Microservices
+
+Technologies:
+
+* JWT
+* OAuth2
+* API tokens
+
+# Which One Should You Use?
+
+Use Stateful Authentication when:
+
+* You need complete logout control
+* You have a traditional web application
+* You want server-managed sessions
+
+Use Stateless Authentication when:
+
+* Building REST APIs
+* Using microservices
+* Supporting mobile applications
+* Need easy horizontal scaling
+
+# Conclusion
+
+Stateful authentication stores user login information on the server using sessions, while stateless authentication stores authentication information inside a token such as JWT.
+
+Stateful authentication provides better control, but scaling is harder.
+
+Stateless authentication provides better scalability and is commonly used in modern applications, but token management requires careful security handling.
+
+Both approaches are valid. The correct choice depends on the application's architecture and requirements.
