@@ -1,0 +1,453 @@
+import { ChangeDetectorRef, Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs/operators';
+
+import { CustomerSidebar } from '../components/customer-sidebar/customer-sidebar';
+import { StatsCards } from '../components/stats-cards/stats-cards';
+import { RevenueChart } from '../components/revenue-chart/revenue-chart';
+import { PolicyChart } from '../components/policy-chart/policy-chart';
+import { PaymentSidebar } from '../components/payment-sidebar/payment-sidebar';
+// import { Logout } from '../components/logout/logout';
+
+import {
+  trigger,
+  transition,
+  style,
+  animate
+} from '@angular/animations';
+
+import { Chatbot } from '../services/chatbot';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+
+  imports: [
+    CommonModule,
+    FormsModule,
+    CustomerSidebar,
+    StatsCards,
+    RevenueChart,
+    PolicyChart,
+    PaymentSidebar,
+    // Logout
+  ],
+
+  templateUrl: './dashboard.html',
+  styleUrl: './dashboard.css',
+
+  animations: [
+    trigger('popupAnimation', [
+
+      transition(':enter', [
+        style({
+          opacity: 0,
+          transform: 'translateY(-80px) scale(0.95)'
+        }),
+
+        animate(
+          '300ms cubic-bezier(0.25,0.8,0.25,1)',
+          style({
+            opacity: 1,
+            transform: 'translateY(0) scale(1)'
+          })
+        )
+      ]),
+
+      transition(':leave', [
+        animate(
+          '300ms ease-in',
+          style({
+            opacity: 0,
+            transform: 'translateY(-60px) scale(0.95)'
+          })
+        )
+      ])
+
+    ])
+  ]
+})
+
+export class Dashboard {
+
+  /* ================= CUSTOMER POPUP ================= */
+
+  showCustomerPopup = false;
+
+  selectedCustomer: any = null;
+
+  openCustomerPopup(customer: any): void {
+    this.selectedCustomer = customer;
+    this.showCustomerPopup = true;
+  }
+
+  closeCustomerPopup(): void {
+    this.showCustomerPopup = false;
+  }
+
+  /* ================= AI ASSISTANT ================= */
+
+  message = '';
+
+  messages: {
+    id: number;
+    text: string;
+    sender: 'user' | 'bot';
+    time: Date;
+  }[] = [];
+
+
+
+
+  isTyping = false;
+  isLoading = false;
+  isConversationCompleted = false;
+conversationId: string | null = null;
+
+  constructor(
+    private chatbotService: Chatbot,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  sendMessage(): void {
+
+    const userMessage = this.message.trim();
+
+    if (!userMessage) return;
+
+    // Belt-and-braces: the input/send button are disabled once the
+    // conversation is completed, but guard here too in case sendMessage()
+    // is triggered another way (e.g. Enter key edge cases).
+    if (this.isConversationCompleted) return;
+
+    // FIX: build a new array instead of push()'ing onto the existing one.
+    // push() mutates in place and keeps the same array reference, which
+    // can leave Angular's change detection unaware anything changed until
+    // some unrelated event (mouse move, etc.) triggers a check later —
+    // that's what was causing the "fast in console, slow on screen" gap.
+    this.messages = [
+      ...this.messages,
+      {
+        id: Date.now(),
+        text: userMessage,
+        sender: 'user',
+        time: new Date()
+      }
+    ];
+
+    this.message = '';
+
+    this.isTyping = true;
+    this.isLoading = true;
+
+    this.scrollToBottom();
+
+    // FIX: Chatbot.sendMessage now requires (message, sessionId) — pass
+    // the conversationId generated in the constructor as the 2nd arg.
+    this.chatbotService
+      .sendMessage(userMessage, this.conversationId)
+      .pipe(
+        finalize(() => {
+          this.isTyping = false;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        
+        next: (response: any) => {
+
+          console.log('AI response:', response);
+
+          // FIX: capture whatever session id the backend issued so the
+          // NEXT message in this conversation reuses it instead of null.
+          // Adjust the field names below once you confirm the exact
+          // response shape from your API (sessionId vs conversationId,
+          // top-level vs nested under `data`).
+          const newSessionId =
+            response?.sessionId ??
+            response?.conversationId ??
+            response?.data?.sessionId ??
+            response?.data?.conversationId;
+
+          if (newSessionId) {
+            this.conversationId = newSessionId;
+          }
+
+          // FIX: backend uses different field names depending on the type
+          // of reply — "aiResponse" for general chat, "question" when it's
+          // asking the next form field (e.g. "What is your full name?").
+          // Both need to be checked or form-filling replies show the
+          // generic fallback message instead of the actual question.
+          // FIX: when all form questions are answered, the backend sends
+          // { success: true, completed: true, answers: {...} } with no
+          // "question" or "aiResponse" field at all — so this used to fall
+          // through to the generic fallback message. Now it's handled
+          // explicitly with a proper thank-you message.
+          const replyText = response?.completed
+            ? 'Thank you! Your details have been saved successfully.'
+            : response?.aiResponse ??
+              response?.question ??
+              response?.reply ??
+              response?.message ??
+              response?.answer ??
+              response?.data?.aiResponse ??
+              response?.data?.question ??
+              'Sorry, I could not understand the response.';
+
+          if (response?.completed) {
+            this.isConversationCompleted = true;
+          }
+
+          this.messages = [
+            ...this.messages,
+            {
+              id: Date.now() + 1,
+              text: replyText,
+              sender: 'bot',
+              time: new Date()
+            }
+          ];
+
+          // FIX: force Angular to render this update immediately rather
+          // than waiting for the next zone-triggered check.
+          this.cdr.detectChanges();
+
+          this.scrollToBottom();
+
+        },
+
+        error: (error) => {
+
+          console.error(error);
+
+          this.messages = [
+            ...this.messages,
+            {
+              id: Date.now() + 1,
+              text: 'Sorry! Something went wrong.',
+              sender: 'bot',
+              time: new Date()
+            }
+          ];
+
+          this.cdr.detectChanges();
+
+          this.scrollToBottom();
+
+        }
+
+      });
+
+  }
+
+  onEnter(event: any): void {
+    event.preventDefault();
+    this.sendMessage();
+  }
+
+  clearChat(): void {
+    this.messages = [];
+  }
+
+  // FIX: new method — resets everything needed to begin a brand new
+  // session (messages, the completed flag, and the sessionId itself)
+  // so the user can start over after finishing a form.
+  startNewConversation(): void {
+    this.messages = [];
+    this.conversationId = null;
+    this.isConversationCompleted = false;
+  }
+
+  trackByMsgId(index: number, msg: { id: number }): number {
+    return msg.id;
+  }
+
+  scrollToBottom(): void {
+
+    setTimeout(() => {
+
+      const chatBody = document.querySelector('.ai-chat-body');
+
+      if (chatBody) {
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+
+    }, 100);
+
+  }
+
+
+  showAiPopup = false;
+
+  openAiAssistant(): void {
+    this.showAiPopup = true;
+  }
+
+  closeAiAssistant(): void {
+    this.showAiPopup = false;
+  }
+
+  /* ================= BUSINESS POPUP ================= */
+
+  showBusinessPopup = false;
+
+  popupTitle = '';
+
+  openBusinessPopup(title: string): void {
+    this.popupTitle = title;
+    this.showBusinessPopup = true;
+  }
+
+  closeBusinessPopup(): void {
+    this.showBusinessPopup = false;
+  }
+
+  /* ================= VOICE ASSISTANT ================= */
+
+  showSiri = false;
+
+  /* ================= MIC / VOICE INPUT (chat input box) ================= */
+  /* Uses MediaRecorder to capture audio, then uploads it to the backend
+     speech-to-text endpoint (Chatbot.sendVoiceMessage). Works in any
+     browser that supports getUserMedia + MediaRecorder — Safari and
+     Firefox included — unlike the browser-only SpeechRecognition API. */
+
+  isRecording = false;
+
+  isTranscribing = false;
+
+  private mediaRecorder: MediaRecorder | null = null;
+
+  private audioChunks: Blob[] = [];
+
+  private micStream: MediaStream | null = null;
+
+  toggleMic(): void {
+
+    if (this.isRecording) {
+      this.stopRecording();
+    } else {
+      this.startRecording();
+    }
+
+  }
+
+  private async startRecording(): Promise<void> {
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.pushBotMessage('Voice input isn\'t supported in this browser.');
+      return;
+    }
+
+    try {
+
+      this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      this.audioChunks = [];
+
+      // 'audio/webm' is broadly supported (Chrome/Edge/Firefox); Safari
+      // may fall back to a different mimeType automatically if omitted.
+      this.mediaRecorder = new MediaRecorder(this.micStream);
+
+      this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = () => {
+        this.handleRecordingStop();
+      };
+
+      this.mediaRecorder.start();
+
+      this.isRecording = true;
+      this.cdr.detectChanges();
+
+    } catch (error) {
+      console.error('Microphone access error:', error);
+      this.pushBotMessage('Couldn\'t access your microphone. Please check permissions.');
+      this.isRecording = false;
+      this.cdr.detectChanges();
+    }
+
+  }
+
+  private stopRecording(): void {
+
+    this.mediaRecorder?.stop();
+
+    // release the mic so the browser's "recording" indicator turns off
+    this.micStream?.getTracks().forEach(track => track.stop());
+    this.micStream = null;
+
+    this.isRecording = false;
+    this.cdr.detectChanges();
+
+  }
+
+  private handleRecordingStop(): void {
+
+    if (this.audioChunks.length === 0) {
+      return;
+    }
+
+    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+
+    this.isTranscribing = true;
+    this.cdr.detectChanges();
+
+    this.chatbotService
+      .sendVoiceMessage(audioBlob)
+      .pipe(
+        finalize(() => {
+          this.isTranscribing = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+
+        next: (response: any) => {
+
+          console.log('Speech-to-text response:', response);
+
+          const transcript =
+            response?.transcript ??
+            response?.text ??
+            response?.message ??
+            '';
+
+          if (transcript.trim()) {
+            this.message = transcript;
+            this.sendMessage();
+          } else {
+            this.pushBotMessage('Sorry, I couldn\'t make out what you said. Please try again.');
+          }
+
+        },
+
+        error: (error) => {
+          console.error('Speech-to-text error:', error);
+          this.pushBotMessage('Sorry! Voice transcription failed.');
+        }
+
+      });
+
+  }
+
+  private pushBotMessage(text: string): void {
+    this.messages = [
+      ...this.messages,
+      {
+        id: Date.now(),
+        text,
+        sender: 'bot',
+        time: new Date()
+      }
+    ];
+    this.cdr.detectChanges();
+  }
+
+}
