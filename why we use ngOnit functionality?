@@ -1,0 +1,42 @@
+Bilkul. Agar tumhe kisi aur component ya backend se data lena ho, to aksar ngOnInit() ek achhi jagah hoti hai.
+
+Example 1: Backend se data lena
+ngOnInit() {
+  this.userService.getUsers().subscribe(data => {
+    this.users = data;
+  });
+}
+
+Jab component load hoga, API call chalegi aur data aa jayega.
+
+Example 2: Parent component se data lena
+
+Parent HTML:
+
+<app-child [customer]="selectedCustomer"></app-child>
+
+Child component:
+
+@Input() customer: any;
+
+ngOnInit() {
+  console.log(this.customer);
+}
+
+Note: Agar customer baad me change ho sakta hai, to ngOnChanges() zyada suitable hota hai.
+
+Example 3: Service se data lena
+constructor(private authService: AuthService) {}
+
+ngOnInit() {
+  this.user = this.authService.getCurrentUser();
+}
+Simple rule
+
+ngOnInit() tab use karo jab component load hote hi:
+
+✅ API se data lena ho
+✅ Service se data lena ho
+✅ Initial setup karna ho
+✅ Default values set karni ho
+✅ Listener start karna ho
