@@ -1,0 +1,109 @@
+     
+
+  isWakeListening = false;
+
+  private wakeRecognition: any = null;
+
+  private wakePausedForPopup = false;
+
+  private readonly wakeWords = ['hey sbi', 'hello sbi', 'hi sbi','sbi bot','hey','hello'];
+
+  startWakeListening(): void {
+
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      console.warn('Wake-word listening not supported in this browser.');
+      return;
+    }
+
+    // Reuse an existing instance if we already created one (e.g. after
+    // resuming from a paused state) instead of creating a new one.
+    if (!this.wakeRecognition) {
+      this.wakeRecognition = new SpeechRecognitionCtor();
+      this.wakeRecognition.continuous = true;
+      this.wakeRecognition.interimResults = true;
+      this.wakeRecognition.lang = 'en-IN';
+
+      this.wakeRecognition.onresult = (event: any) => {
+
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join(' ')
+          .toLowerCase();
+
+        const heardWakeWord = this.wakeWords.some(word => transcript.includes(word));
+
+        if (heardWakeWord && !this.showAiPopup) {
+          this.onWakeWordDetected();
+        }
+      };
+
+      this.wakeRecognition.onerror = (event: any) => {
+        console.warn('Wake-word recognition error:', event.error);
+
+        // 'not-allowed' / 'service-not-allowed' means the user denied
+        // mic permission — stop trying to avoid an infinite error loop.
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          this.isWakeListening = false;
+        }
+      };
+
+      this.wakeRecognition.onend = () => {
+        // Browsers auto-stop recognition after a period of silence.
+        // Restart automatically unless we deliberately paused/stopped it
+        // (e.g. because the AI popup is now open).
+        if (this.isWakeListening && !this.wakePausedForPopup) {
+          try {
+            this.wakeRecognition.start();
+          } catch {
+            // start() throws if called while already running — safe to ignore.
+          }
+        }
+      };
+    }
+
+    try {
+      this.wakeRecognition.start();
+      this.isWakeListening = true;
+    } catch (error) {
+      // Most commonly thrown if start() is called while it's already running.
+      console.warn('Could not start wake-word listening:', error);
+    }
+  }
+
+  stopWakeListening(): void {
+    this.isWakeListening = false;
+    this.wakeRecognition?.stop();
+  }
+
+  private pauseWakeListeningForPopup(): void {
+    this.wakePausedForPopup = true;
+    this.wakeRecognition?.stop();
+  }
+
+  private resumeWakeListeningAfterPopup(): void {
+    this.wakePausedForPopup = false;
+    this.startWakeListening();
+  }
+
+  private onWakeWordDetected(): void {
+    this.openAiAssistant();
+    this.cdr.detectChanges();
+    this.speak('Hello, how can I help you?');
+  }
+
+  private speak(text: string): void {
+    if (!('speechSynthesis' in window)) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* ================= MIC / VOICE INPUT (chat input box) ================= */
+  /* Uses MediaRecorder to capture audio, then uploads it to the backend
+     speech-to-text endpoint (Chatbot.sendVoiceMessage). Works in any
+     browser that supports getUserMedia + MediaRecorder — Safari and
+     Firefox included — unlike the browser-only SpeechRecognition API. */
