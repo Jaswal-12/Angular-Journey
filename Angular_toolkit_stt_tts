@@ -1,0 +1,609 @@
+# Angular Speech Toolkit Notes 🎤
+
+## Introduction
+
+Angular Speech Toolkit means adding **voice capabilities** to an Angular application.
+
+It allows users to interact with the application using voice commands instead of only using keyboard and mouse.
+
+The two main features are:
+
+1. **Speech Recognition (Voice → Text)**
+2. **Text To Speech (Text → Voice)**
+
+---
+
+# 1. Speech Recognition (Voice → Text)
+
+Speech Recognition converts human voice into text.
+
+### Flow:
+
+```
+User Voice
+     |
+     ↓
+Microphone
+     |
+     ↓
+Speech Recognition API
+     |
+     ↓
+Text Output
+     |
+     ↓
+Angular Component
+```
+
+### Example:
+
+User says:
+
+```
+Calculate my insurance premium
+```
+
+Speech Recognition converts it into:
+
+```
+"Calculate my insurance premium"
+```
+
+Now Angular can process this text.
+
+---
+
+# 2. Text To Speech (Text → Voice)
+
+Text To Speech converts application text into human-like voice.
+
+### Flow:
+
+```
+Text
+ |
+ ↓
+Speech Synthesis
+ |
+ ↓
+Voice Output
+```
+
+### Example:
+
+Application response:
+
+```
+Your policy has been approved.
+```
+
+Browser speaks:
+
+🔊 Your policy has been approved.
+
+---
+
+# Web Speech API in Angular
+
+Angular can use the browser's built-in Web Speech API.
+
+Main APIs:
+
+### Speech Recognition
+
+```javascript
+webkitSpeechRecognition
+```
+
+Used for:
+
+- Listening to user voice
+- Converting speech into text
+
+
+### Speech Synthesis
+
+```javascript
+speechSynthesis
+```
+
+Used for:
+
+- Converting text into audio
+
+---
+
+# Creating Speech Recognition Service
+
+Create service:
+
+```
+ng generate service speech
+```
+
+File:
+
+```
+speech.service.ts
+```
+
+Example:
+
+```typescript
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn:'root'
+})
+export class SpeechService {
+
+  recognition:any;
+
+
+  constructor(){
+
+    const SpeechRecognition =
+    window.webkitSpeechRecognition;
+
+
+    this.recognition =
+    new SpeechRecognition();
+
+
+    this.recognition.lang = "en-US";
+
+
+    this.recognition.continuous = false;
+
+  }
+
+
+  startListening(callback:any){
+
+
+    this.recognition.start();
+
+
+    this.recognition.onresult =
+    (event:any)=>{
+
+
+      const text =
+      event.results[0][0].transcript;
+
+
+      callback(text);
+
+    }
+
+  }
+
+}
+```
+
+---
+
+# Using Speech Service in Component
+
+Component:
+
+```typescript
+constructor(
+ private speechService:SpeechService
+){}
+
+
+
+startMic(){
+
+
+ this.speechService
+ .startListening((text:string)=>{
+
+
+   console.log(text);
+
+
+ });
+
+
+}
+```
+
+HTML:
+
+```html
+<button (click)="startMic()">
+
+🎤 Speak Now
+
+</button>
+```
+
+---
+
+# Text To Speech Implementation
+
+Example:
+
+```typescript
+speak(message:string){
+
+
+ const speech =
+ new SpeechSynthesisUtterance(message);
+
+
+ speech.lang="en-US";
+
+
+ window.speechSynthesis
+ .speak(speech);
+
+
+}
+```
+
+Usage:
+
+```typescript
+this.speak(
+"Your premium is five thousand rupees"
+);
+```
+
+Output:
+
+```
+🔊 Your premium is five thousand rupees
+```
+
+---
+
+# Important Speech Features
+
+---
+
+# 1. Wake Word Detection
+
+Wake word means a specific word that activates the assistant.
+
+Example:
+
+```
+Hey SBI
+```
+
+Flow:
+
+```
+Microphone Listening
+          |
+          ↓
+Detect Wake Word
+          |
+          ↓
+Activate Assistant
+          |
+          ↓
+Start Conversation
+```
+
+Use case:
+
+AI insurance assistant opens when user says:
+
+```
+Hey SBI
+```
+
+---
+
+# 2. Voice Commands
+
+User can control application using voice.
+
+Example:
+
+User:
+
+```
+Open customer form
+```
+
+Speech converts into:
+
+```
+open customer form
+```
+
+Application action:
+
+```typescript
+this.router.navigate([
+ '/customer-form'
+]);
+```
+
+---
+
+# 3. Voice Form Filling
+
+User speaks information:
+
+Example:
+
+```
+My name is Karan
+My age is 21
+I need life insurance
+```
+
+AI extracts information:
+
+```
+Name = Karan
+
+Age = 21
+
+Policy = Life Insurance
+```
+
+Angular form update:
+
+```typescript
+this.insuranceForm.patchValue({
+
+ name:"Karan",
+
+ age:21,
+
+ policy:"Life Insurance"
+
+});
+```
+
+---
+
+# Speech Architecture for AI Insurance Project
+
+```
+              User Voice
+
+                  |
+
+                  ↓
+
+        Angular Speech Service
+
+                  |
+
+                  ↓
+
+          Speech Recognition
+
+                  |
+
+                  ↓
+
+                 Text
+
+                  |
+
+                  ↓
+
+          Gemini / Vertex AI
+
+                  |
+
+                  ↓
+
+          Intent Detection
+
+                  |
+
+                  ↓
+
+            Action Router
+
+                  |
+
+        ---------------------
+
+        |                   |
+
+   Open Form          Calculate Premium
+
+        |
+
+        ↓
+
+ Text Response
+
+        |
+
+        ↓
+
+ Text To Speech
+
+        |
+
+        ↓
+
+ Voice Output
+```
+
+---
+
+# Speech Technologies
+
+## 1. Web Speech API
+
+### Advantages:
+
+- Free
+- Easy implementation
+- No API key required
+- Browser supported
+
+
+### Limitations:
+
+- Browser dependent
+- Chrome provides better support
+
+---
+
+# 2. Google Cloud Speech-To-Text
+
+Used for enterprise-level applications.
+
+Architecture:
+
+```
+Angular
+
+↓
+
+Node.js Backend
+
+↓
+
+Google Speech API
+
+↓
+
+Text Response
+```
+
+Advantages:
+
+- High accuracy
+- Multiple language support
+- Cloud processing
+
+---
+
+# 3. Microsoft Azure Speech SDK
+
+Features:
+
+- Real-time speech recognition
+- Multiple languages
+- High accuracy
+- Enterprise support
+
+---
+
+# Angular Speech Best Practices
+
+## 1. Create Separate Speech Service
+
+Do not write speech logic directly inside component.
+
+Good:
+
+```
+Component
+    |
+    ↓
+Speech Service
+```
+
+---
+
+## 2. Handle Microphone Permission
+
+Always check:
+
+- User allowed microphone
+- Browser support
+- Permission denied errors
+
+---
+
+## 3. Handle Errors
+
+Examples:
+
+```
+No microphone found
+
+Permission denied
+
+Speech not recognized
+
+Network error
+```
+
+---
+
+## 4. Stop Recognition Properly
+
+After speech completion:
+
+```typescript
+recognition.stop();
+```
+
+Avoid:
+
+```
+InvalidStateError:
+recognition already started
+```
+
+---
+
+# Speech Recognition vs Text To Speech
+
+| Speech Recognition | Text To Speech |
+|---|---|
+| Voice → Text | Text → Voice |
+| Takes microphone input | Gives audio output |
+| Uses SpeechRecognition API | Uses SpeechSynthesis API |
+| Used for commands | Used for assistant replies |
+
+---
+
+# Speech Toolkit Use Cases
+
+## AI Insurance Portal
+
+Possible features:
+
+✅ Voice customer onboarding
+
+✅ Voice premium calculator
+
+✅ Policy recommendation through conversation
+
+✅ AI voice assistant
+
+✅ Voice controlled dashboard
+
+✅ Automatic form filling
+
+---
+
+# Interview Answer
+
+**Speech Toolkit in Angular is used to integrate voice-based interaction into web applications. It provides Speech Recognition to convert user speech into text and Text-To-Speech to convert application responses into audio. It can be implemented using Web Speech API or cloud services like Google Speech-to-Text and Azure Speech SDK.**
+
+---
+
+# Learning Roadmap
+
+1. Learn Web Speech API
+
+2. Create Angular Speech Service
+
+3. Implement Voice Input
+
+4. Implement Text-To-Speech
+
+5. Add Backend Speech APIs
+
+6. Connect Gemini / Vertex AI
+
+7. Build AI Voice Assistant
