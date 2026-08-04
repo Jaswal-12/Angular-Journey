@@ -1,0 +1,130 @@
+Angular_Signals_Guide.md
+Angular Signals
+What are Signals?
+
+Signals are a new reactive state management feature introduced in Angular. They allow Angular to automatically track state changes and update the UI whenever the signal value changes.
+
+Before Signals, Angular mainly relied on:
+
+    Change Detection
+
+    RxJS Observables
+
+    @Input() and @Output()
+
+Signals provide a simpler and more efficient way to manage state.
+Why Angular Introduced Signals?
+
+Traditional Angular change detection checks many components even if only one value changes.
+
+Signals solve this problem by:
+
+    Tracking exactly which data changes
+
+    Updating only the affected UI
+
+    Improving performance
+
+    Writing less code
+
+    Eliminating many manual subscriptions
+
+Creating a Signal
+
+import { signal } from '@angular/core';
+
+count = signal(0);
+
+Read:
+
+console.log(count());
+
+Update:
+
+count.set(10);
+
+count.update(value => value + 1);
+
+Counter Example
+
+import { Component, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-counter',
+  standalone: true,
+  template: `
+    <h2>{{ count() }}</h2>
+    <button (click)="increment()">+</button>
+    <button (click)="decrement()">-</button>
+  `
+})
+export class CounterComponent {
+  count = signal(0);
+
+  increment() {
+    this.count.update(v => v + 1);
+  }
+
+  decrement() {
+    this.count.update(v => v - 1);
+  }
+}
+
+Computed Signals
+
+import { signal, computed } from '@angular/core';
+
+price = signal(500);
+quantity = signal(2);
+
+total = computed(() => price() * quantity());
+
+Effects
+
+import { signal, effect } from '@angular/core';
+
+count = signal(0);
+
+effect(() => {
+  console.log(count());
+});
+
+Objects
+
+user = signal({
+  name: 'Karan',
+  age: 22
+});
+
+user.update(current => ({
+  ...current,
+  age: 23
+}));
+
+Arrays
+
+users = signal(['Karan', 'Rahul']);
+
+users.update(list => [...list, 'Aman']);
+
+Signal vs Observable
+Signal	Observable
+Holds current value	Emits stream of values
+No subscription	Requires subscription or async pipe
+Synchronous	Often asynchronous
+Great for component state	Great for HTTP/WebSockets
+Best Practices
+
+    Use signal() for component state.
+
+    Use computed() for derived values.
+
+    Use effect() for side effects only.
+
+    Update arrays/objects immutably.
+
+    Use Observables for HTTP and async streams.
+
+Summary
+
+Angular Signals provide fine-grained reactivity with automatic UI updates, improved performance, and cleaner code. They are ideal for managing local component state, while RxJS Observables remain the preferred solution for asynchronous operations such as HTTP requests and WebSockets.
