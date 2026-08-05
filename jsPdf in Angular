@@ -1,0 +1,95 @@
+ private downloadPdf(data: any) {
+
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    const navy: [number, number, number] = [23, 32, 107];
+    const cyan: [number, number, number] = [22, 169, 221];
+    const muted: [number, number, number] = [100, 112, 138];
+    const rowTint: [number, number, number] = [240, 245, 251];
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = 48;
+
+    // ---- Header band ----
+    doc.setFillColor(...navy);
+    doc.rect(0, 0, pageWidth, 92, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('AI Insurance Onboarding', marginX, 44);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Onboarding Confirmation', marginX, 64);
+
+    doc.setFontSize(9);
+    const sessionLabel = `Session ID: ${data.sessionId ?? '—'}`;
+    doc.text(sessionLabel, marginX, 82);
+
+    const generatedOn = new Date().toLocaleString('en-IN');
+    const generatedLabel = `Generated: ${generatedOn}`;
+    doc.text(
+      generatedLabel,
+      pageWidth - marginX - doc.getTextWidth(generatedLabel),
+      82
+    );
+
+    // ---- Field table ----
+    const fields: [string, string][] = [
+      ['Full Name', data.name || '—'],
+      ['Year of Birth', data.dob || '—'],
+      ['Age', data.age || '—'],
+      ['Gender', data.gender || '—'],
+      ['Profession', data.Profession || '—'],
+      [
+        'Annual Income',
+        data.Income ? `₹ ${Number(data.Income).toLocaleString('en-IN')}` : '—'
+      ],
+      ['Marital Status', data.MaritalStatus || '—'],
+      ['Number of Children', data.Children || '—'],
+      ['Financial Goal', data.Goaltype || '—'],
+    ];
+
+    let y = 132;
+    const rowHeight = 34;
+
+    fields.forEach(([label, value], index) => {
+
+      if (index % 2 === 0) {
+        doc.setFillColor(...rowTint);
+        doc.rect(marginX - 10, y - 20, pageWidth - (marginX - 10) * 2, rowHeight, 'F');
+      }
+
+      doc.setTextColor(...muted);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(label.toUpperCase(), marginX, y);
+
+      doc.setTextColor(...navy);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12.5);
+      doc.text(String(value), marginX, y + 16);
+
+      y += rowHeight;
+
+    });
+
+    // ---- Footer ----
+    doc.setDrawColor(...cyan);
+    doc.setLineWidth(1.2);
+    doc.line(marginX, y + 8, pageWidth - marginX, y + 8);
+
+    doc.setTextColor(...muted);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.text(
+      'This document was auto-generated from a voice-driven onboarding session.',
+      marginX,
+      y + 24
+    );
+
+    const safeName = (data.name || 'Customer').toString().trim().replace(/\s+/g, '-');
+    doc.save(`Insurance-Onboarding-${safeName}.pdf`);
+
+  }
