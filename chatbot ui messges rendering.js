@@ -229,7 +229,7 @@ export class Dashboard {
   closeBusinessPopup(): void {
     this.showBusinessPopup = false;
   }
-
+   
   /* ================= VOICE ASSISTANT ================= */
 
   showSiri = false;
